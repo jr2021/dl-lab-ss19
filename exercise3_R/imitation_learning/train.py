@@ -46,7 +46,7 @@ def preprocessing(X_train, y_train, X_valid, y_valid, history_length=1):
     # At first you should only use the current image as input to your network to learn the next action. Then the input states
     # have shape (96, 96, 1). Later, add a history of the last N images to your state so that a state has shape (96, 96, N).
     
-    return X_train, y_train, X_valid, y_valid
+    return rgb2gray(X_train), action_to_id(y_train), rgb2gray(X_valid), action_to_id(y_valid)
 
 
 def train_model(X_train, y_train, X_valid, n_minibatches, batch_size, lr, model_dir="./models", tensorboard_dir="./tensorboard"):
@@ -57,29 +57,35 @@ def train_model(X_train, y_train, X_valid, n_minibatches, batch_size, lr, model_
  
     print("... train model")
 
-
     # TODO: specify your agent with the neural network in agents/bc_agent.py 
-    # agent = BCAgent(...)
+    agent = BCAgent()
     
-    tensorboard_eval = Evaluation(tensorboard_dir)
+    tensorboard_eval = Evaluation(tensorboard_dir, ['loss'])
 
     # TODO: implement the training
-    # 
     # 1. write a method sample_minibatch and perform an update step
     # 2. compute training/ validation accuracy and loss for the batch and visualize them with tensorboard. You can watch the progress of
     #    your training *during* the training in your web browser
-    # 
+    
     # training loop
-    # for i in range(n_minibatches):
-    #     ...
-    #     for i % 10 == 0:
-    #         # compute training/ validation accuracy and write it to tensorboard
-    #         tensorboard_eval.write_episode_data(...)
+    for i in range(n_minibatches):
+        X_batch, y_batch = sample_minibatch(X_train, y_train, batch_size)
+        loss = agent.update(X_batch, y_batch)
+
+        if i % 10 == 0:
+            # compute training/ validation accuracy and write it to tensorboard
+            tensorboard_eval.write_episode_data(i, {'loss': loss})
       
     # TODO: save your agent
-    # model_dir = agent.save(os.path.join(model_dir, "agent.pt"))
-    # print("Model saved in file: %s" % model_dir)
+    model_dir = agent.save(os.path.join(model_dir, "agent.pt"))
+    print("Model saved in file: %s" % model_dir)
 
+
+def sample_minibatch(X_train, y_train, batch_size):
+    indices = np.random.randint(low=0, high=len(X_train), size=batch_size)
+    X_batch, y_batch = X_train[indices], y_train[indices]
+
+    return X_batch, y_batch
 
 if __name__ == "__main__":
 
@@ -91,4 +97,3 @@ if __name__ == "__main__":
 
     # train model (you can change the parameters!)
     train_model(X_train, y_train, X_valid, n_minibatches=1000, batch_size=64, lr=1e-4)
- 
